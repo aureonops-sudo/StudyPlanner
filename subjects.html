@@ -1,76 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study Tracker — Subjects</title>
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Tracker — Subjects</title>
+    <!-- 1. Link to your CSS -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="app-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">🌿</div>
-        <div>
-          <h1>StudyTracker</h1>
-          <span>Productivity System</span>
-        </div>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-        <a href="subjects.html" class="nav-item active"><span class="nav-icon">📚</span> Subjects</a>
-        <a href="homework.html" class="nav-item"><span class="nav-icon">📝</span> Homework</a>
-        <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
-        <a href="tests.html" class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
-      </nav>
-      <div class="sidebar-footer">
-        <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
-      </div>
-    </aside>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🌿</div>
+                <div>
+                    <h1>StudyTracker</h1>
+                    <span>Productivity System</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+                <a href="subjects.html" class="nav-item active"><span class="nav-icon">📚</span> Subjects</a>
+                <a href="homework.html" class="nav-item"><span class="nav-icon">📝</span> Homework</a>
+                <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
+                <a href="tests.html" class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+            </div>
+        </aside>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <header class="page-header">
-        <h1>📚 Subjects</h1>
-      </header>
-      
-      <!-- Target container for JS -->
-      <div id="subject-grid" class="grid-3">
-        <p style="color:var(--text-muted); grid-column:1/-1; text-align:center; padding:40px 0;">Loading subjects...</p>
-      </div>
-    </main>
-  </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <h1>📚 Subjects</h1>
+            </header>
+            
+            <!-- 2. The Missing Container: This is where subjects will be loaded -->
+            <div id="subjects-grid" class="grid-3">
+                <p class="text-muted" style="text-align:center; padding:40px; grid-column:1/-1;">Loading subjects...</p>
+            </div>
+        </main>
+    </div>
 
-  <!-- Core API & Utilities -->
-  <script src="js/api.js"></script>
-  
-  <!-- Subjects Rendering Logic -->
-  <script>
-    async function renderSubjects() {      const container = document.getElementById('subject-grid');
-      if (!container) return;
+    <!-- 3. Load API and Logic -->
+    <script src="js/api.js"></script>
+    <script>
+        // Wait for API to be ready, then load subjects
+        document.addEventListener('DOMContentLoaded', () => {            if (window._apiReady) {
+                window._apiReady.then(() => loadSubjectsPage());
+            } else {
+                window.addEventListener('apiReady', () => loadSubjectsPage());
+            }
+        });
 
-      try {
-        const subjects = await API.getData('Subjects');
-        container.innerHTML = '';
+        // This function allows other pages to refresh this view if needed
+        window.refreshCurrentView = loadSubjectsPage;
 
-        if (subjects.length === 0) {
-          container.innerHTML = `
-            <div class="empty-state" style="grid-column:1/-1;">
-              <div class="empty-icon">📚</div>
-              <p>No subjects found. Check your database or wait for sync.</p>
-            </div>`;
-          return;
+        async function loadSubjectsPage() {
+            const container = document.getElementById('subjects-grid');
+            if (!container) return;
+
+            // Fetch data using your API
+            const subjects = await API.getData('Subjects');
+            const chapters = await API.getData('Chapters');
+
+            container.innerHTML = ''; // Clear loading message
+
+            if (!subjects || subjects.length === 0) {
+                container.innerHTML = `<p class="text-muted" style="text-align:center; padding:40px; grid-column:1/-1;">No subjects found.</p>`;
+                return;
+            }
+
+            // Render Subject Cards (Based on your subjects.js logic)
+            subjects.forEach(subject => {
+                const subjectChapters = chapters.filter(c => c.subject_id === subject.id);
+                const progress = calculateSubjectProgress(subject.id);
+                const completedChapters = subjectChapters.filter(c => calculateChapterProgress(c.id) === 100).length;
+
+                const card = document.createElement('div');
+                card.className = 'subject-card';
+                card.onclick = () => navigateToChapters(subject.id);
+                
+                card.innerHTML = `
+                    <div class="subject-icon" style="background:${subject.color}20; color:${subject.color};">
+                        ${subject.icon}
+                    </div>
+                    <h3>${subject.name}</h3>
+                    <p class="chapter-count">${subjectChapters.length} Chapters · ${completedChapters} Completed</p>
+                    <div class="progress-bar-wrapper">
+                        <!-- Using subject.color directly for the progress bar -->
+                        <div class="progress-bar-fill" style="width:${progress}%; background:${subject.color}"></div>
+                    </div>
+                    <div class="progress-text" style="color:${subject.color}">${progress}%</div>
+                `;
+                container.appendChild(card);
+            });
         }
-
-        subjects.forEach(subject => {
-          const chapters = LocalDB.get('Chapters').filter(c => c.subject_id === subject.id);
-          const progress = calculateSubjectProgress(subject.id);
-          
-          const card = document.createElement('div');
-          card.className = 'subject-card';
-          card.innerHTML = `
-            <div class="subject-icon" style="background:${subject.color}20; color:${subject.color};">
+        function navigateToChapters(subjectId) {
+            // Navigate to chapter.html with the subject ID
+            window.location.href = `chapter.html?subject=${subjectId}`;
+        }
+    </script>
+</body>
+</html>            <div class="subject-icon" style="background:${subject.color}20; color:${subject.color};">
               ${subject.icon}
             </div>
             <h3>${subject.name}</h3>
