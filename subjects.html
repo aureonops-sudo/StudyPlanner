@@ -1,52 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Study Tracker — Subjects</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="style-1.css">
 </head>
-<body data-page="subjects">
+<body>
   <div class="app-container">
-
-    <aside class="sidebar" id="sidebar">
+    <!-- Sidebar -->
+    <aside class="sidebar">
       <div class="sidebar-logo">
         <div class="logo-icon">🌿</div>
-        <div><h1>StudyTracker</h1><span>Productivity System</span></div>
+        <div>
+          <h1>StudyTracker</h1>
+          <span>Productivity System</span>
+        </div>
       </div>
       <nav class="sidebar-nav">
-        <a href="index.html"       class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-        <a href="subjects.html"    class="nav-item active"><span class="nav-icon">📚</span> Subjects</a>
-        <a href="homework.html"    class="nav-item"><span class="nav-icon">📝</span> Homework</a>
+        <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+        <a href="subjects.html" class="nav-item active"><span class="nav-icon">📚</span> Subjects</a>
+        <a href="homework.html" class="nav-item"><span class="nav-icon">📝</span> Homework</a>
         <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
-        <a href="tests.html"       class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
+        <a href="tests.html" class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
       </nav>
+      <div class="sidebar-footer">
+        <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+      </div>
     </aside>
 
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
+    <!-- Main Content -->
     <main class="main-content">
-      <div class="page-wrapper">
-        <div class="page-header">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
-            <h1>📚 Subjects</h1>
-          </div>
-        </div>
-        <div class="grid-3" id="subjects-grid"></div>
+      <header class="page-header">
+        <h1>📚 Subjects</h1>
+      </header>
+      
+      <!-- Target container for JS -->
+      <div id="subject-grid" class="grid-3">
+        <p style="color:var(--text-muted); grid-column:1/-1; text-align:center; padding:40px 0;">Loading subjects...</p>
       </div>
     </main>
   </div>
 
-  <div class="toast-container" id="toast-container"></div>
-
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/subjects.js"></script>
+  <!-- Core API & Utilities -->
+  <script src="api.js"></script>
+  
+  <!-- Subjects Rendering Logic -->
   <script>
-    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
-    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
-  </script>
+    async function renderSubjects() {      const container = document.getElementById('subject-grid');
+      if (!container) return;
+
+      try {
+        const subjects = await API.getData('Subjects');
+        container.innerHTML = '';
+
+        if (subjects.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1;">
+              <div class="empty-icon">📚</div>
+              <p>No subjects found. Check your database or wait for sync.</p>
+            </div>`;
+          return;
+        }
+
+        subjects.forEach(subject => {
+          const chapters = LocalDB.get('Chapters').filter(c => c.subject_id === subject.id);
+          const progress = calculateSubjectProgress(subject.id);
+          
+          const card = document.createElement('div');
+          card.className = 'subject-card';
+          card.innerHTML = `
+            <div class="subject-icon" style="background:${subject.color}20; color:${subject.color};">
+              ${subject.icon}
+            </div>
+            <h3>${subject.name}</h3>
+            <div class="chapter-count">${chapters.length} Chapters · ${progress}% Complete</div>
+            <div class="progress-bar-wrapper">
+              <div class="progress-bar-fill ${progress === 100 ? 'green' : 'blue'}" style="width:${progress}%"></div>
+            </div>
+          `;
+          // Navigate to chapter view
+          card.onclick = () => window.location.href = `chapter.html?subject=${subject.id}`;
+          container.appendChild(card);
+        });
+      } catch (error) {
+        console.error('[Subjects] Render failed:', error);
+        container.innerHTML = `<p style="color:var(--accent-red); grid-column:1/-1;">Failed to load subjects.</p>`;
+      }
+    }
+
+    // Wait for API & Firebase seed to finish
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window._apiReady) {
+        window._apiReady.then(() => renderSubjects());
+      } else {
+        window.addEventListener('apiReady', () => renderSubjects());
+      }
+    });  </script>
 </body>
 </html>
