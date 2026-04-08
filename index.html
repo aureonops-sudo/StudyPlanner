@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Tracker — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-page="dashboard">
+  <div class="app-container">
+
+    <!-- ========== SIDEBAR ========== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🌿</div>
+        <div>
+          <h1>StudyTracker</h1>
+          <span>Productivity System</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html" class="nav-item active">
+          <span class="nav-icon">🏠</span> Dashboard
+        </a>
+        <a href="subjects.html" class="nav-item">
+          <span class="nav-icon">📚</span> Subjects
+        </a>
+        <a href="homework.html" class="nav-item">
+          <span class="nav-icon">📝</span> Homework
+        </a>
+        <a href="assignments.html" class="nav-item">
+          <span class="nav-icon">📑</span> Assignments
+        </a>
+        <a href="tests.html" class="nav-item">
+          <span class="nav-icon">📊</span> Test Analysis
+        </a>
+      </nav>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="main-content">
+      <div class="page-wrapper">
+
+        <!-- Header -->
+        <div class="page-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+            <h1>🌿 Dashboard</h1>
+          </div>
+          <div class="header-right">
+            <div class="date-time-widget" id="datetime-widget">
+              <span class="date">Loading...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="grid-4 mb-24">
+          <div class="stat-card">
+            <div class="stat-icon blue">📈</div>
+            <div class="stat-info">
+              <h3 id="stat-progress">0%</h3>
+              <p>Overall Progress</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">📝</div>
+            <div class="stat-info">
+              <h3 id="stat-homework">0</h3>
+              <p>Pending Homework</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">📑</div>
+            <div class="stat-info">
+              <h3 id="stat-assignments">0</h3>
+              <p>Pending Assignments</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">🎯</div>
+            <div class="stat-info">
+              <h3 id="stat-accuracy">0%</h3>
+              <p>Avg Test Accuracy</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid-2 mb-24">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📊 Subject Progress</span>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="subject-progress-chart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🌱 Completion Overview</span>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="completion-pie-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Middle Row: Todo + Goals -->
+        <div class="grid-2 mb-24">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">✅ To-Do List</span>
+            </div>
+            <div id="todo-list"></div>
+            <div class="todo-add">
+              <input type="text" id="todo-input" placeholder="Add a task..."
+                     onkeypress="if(event.key==='Enter')addTodo()" />
+              <button class="btn btn-primary btn-sm" onclick="addTodo()">Add</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🎯 Goals</span>
+            </div>
+            <div id="goals-list"></div>
+            <div class="todo-add">
+              <input type="text" id="goal-input" placeholder="Set a goal..."
+                     onkeypress="if(event.key==='Enter')addGoal()" />
+              <button class="btn btn-primary btn-sm" onclick="addGoal()">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Pending Homework + Pending Assignments -->
+        <div class="grid-2 mb-24">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📝 Pending Homework</span>
+              <a href="homework.html" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+            <div id="pending-homework"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">📑 Pending Assignments</span>
+              <a href="assignments.html" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+            <div id="pending-assignments"></div>
+          </div>
+        </div>
+
+        <!-- Quick Navigation -->
+        <div class="grid-4 mb-24">
+          <a href="subjects.html" class="card text-center" style="cursor:pointer;">
+            <div style="font-size:32px;margin-bottom:8px;">📚</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Subjects</div>
+          </a>
+          <a href="homework.html" class="card text-center" style="cursor:pointer;">
+            <div style="font-size:32px;margin-bottom:8px;">📝</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Homework</div>
+          </a>
+          <a href="assignments.html" class="card text-center" style="cursor:pointer;">
+            <div style="font-size:32px;margin-bottom:8px;">📑</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Assignments</div>
+          </a>
+          <a href="tests.html" class="card text-center" style="cursor:pointer;">
+            <div style="font-size:32px;margin-bottom:8px;">📊</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Tests</div>
+          </a>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script>
+    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
+  </script>
+</body>
+</html>

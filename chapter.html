@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Tracker — Chapters</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .chapter-detail-panel {
+      position: fixed;
+      top: 0;
+      right: -500px;
+      width: 480px;
+      height: 100vh;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-color);
+      z-index: 200;
+      transition: right 0.3s ease;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: -8px 0 32px rgba(61, 122, 85, 0.12);
+    }
+    .chapter-detail-panel.active { right: 0; }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .detail-header h2 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 600;
+      max-width: 340px;
+      color: var(--text-primary);
+    }
+
+    .detail-progress-badge {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-blue);
+    }
+
+    @media (max-width: 768px) {
+      .chapter-detail-panel { width: 100%; right: -100%; }
+    }
+  </style>
+</head>
+<body data-page="chapters">
+  <div class="app-container">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🌿</div>
+        <div><h1>StudyTracker</h1><span>Productivity System</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html"       class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+        <a href="subjects.html"    class="nav-item active"><span class="nav-icon">📚</span> Subjects</a>
+        <a href="homework.html"    class="nav-item"><span class="nav-icon">📝</span> Homework</a>
+        <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
+        <a href="tests.html"       class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
+      </nav>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <main class="main-content">
+      <div class="page-wrapper">
+
+        <div class="page-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+            <div>
+              <a href="subjects.html"
+                 style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:2px;">
+                ← Back to Subjects
+              </a>
+              <h1 id="chapter-page-title">Subject</h1>
+            </div>
+          </div>
+          <div id="subject-progress-display" style="min-width:200px;"></div>
+        </div>
+
+        <div id="chapter-list"></div>
+
+      </div>
+    </main>
+
+    <!-- Chapter Detail Panel -->
+    <div class="chapter-detail-panel" id="chapter-detail">
+      <div class="detail-header">
+        <div>
+          <h2 id="detail-chapter-name">Chapter Name</h2>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">Chapter Detail</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <span class="detail-progress-badge" id="detail-progress">0%</span>
+          <div class="modal-close" onclick="closeChapterDetail()">✕</div>
+        </div>
+      </div>
+
+      <div class="tabs-container">
+        <button class="tab-btn active" data-tab="parameters"  onclick="switchTab('parameters')">Parameters</button>
+        <button class="tab-btn"        data-tab="homework"    onclick="switchTab('homework')">Homework</button>
+        <button class="tab-btn"        data-tab="assignments" onclick="switchTab('assignments')">Assignments</button>
+      </div>
+
+      <div class="tab-content active" id="tab-parameters">
+        <div id="parameters-list"></div>
+      </div>
+      <div class="tab-content" id="tab-homework">
+        <div id="chapter-homework-list"></div>
+      </div>
+      <div class="tab-content" id="tab-assignments">
+        <div id="chapter-assignments-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/chapter.js"></script>
+  <script>
+    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
+  </script>
+</body>
+</html>

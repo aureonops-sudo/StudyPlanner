@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Tracker — Test Analysis</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body data-page="tests">
+  <div class="app-container">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">🌿</div>
+        <div><h1>StudyTracker</h1><span>Productivity System</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html"       class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+        <a href="subjects.html"    class="nav-item"><span class="nav-icon">📚</span> Subjects</a>
+        <a href="homework.html"    class="nav-item"><span class="nav-icon">📝</span> Homework</a>
+        <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
+        <a href="tests.html"       class="nav-item active"><span class="nav-icon">📊</span> Test Analysis</a>
+      </nav>
+    </aside>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <main class="main-content">
+      <div class="page-wrapper">
+
+        <div class="page-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+            <h1>📊 Test Analysis</h1>
+          </div>
+          <button class="btn btn-primary" onclick="showAddTestModal()">+ Add Test</button>
+        </div>
+
+        <div class="grid-3 mb-24" id="test-stats"></div>
+
+        <div class="card mb-24">
+          <div class="card-header">
+            <span class="card-title">Performance Trend</span>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="test-trend-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Tests</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Test Name</th>
+                  <th>Subject</th>
+                  <th>Marks</th>
+                  <th>Accuracy</th>
+                  <th>Date</th>
+                  <th>Correction</th>
+                </tr>
+              </thead>
+              <tbody id="tests-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Test Modal -->
+  <div class="modal-overlay" id="test-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Record Test</h2>
+        <div class="modal-close" onclick="closeTestModal()">✕</div>
+      </div>
+      <div class="form-group">
+        <label>Test Name *</label>
+        <input type="text" id="test-name" class="form-input" placeholder="e.g. Unit Test 1" />
+      </div>
+      <div class="form-group">
+        <label>Subject *</label>
+        <select id="test-subject" class="form-input subject-select">
+          <option value="">Select Subject</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Marks Scored *</label>
+          <input type="number" id="test-marks" class="form-input" placeholder="78" />
+        </div>
+        <div class="form-group">
+          <label>Total Marks *</label>
+          <input type="number" id="test-total" class="form-input" placeholder="100" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="test-date" class="form-input" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeTestModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTest()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/logs.js"></script>
+  <script>
+    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
+  </script>
+</body>
+</html>
