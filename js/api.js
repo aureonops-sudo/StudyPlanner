@@ -2,7 +2,6 @@
    API LAYER - Firebase Realtime Database
    ============================================ */
 
-/* ---------- FIREBASE CONFIG ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyCwJN1GV5vMP-8FbtO4SFErpnbTpIgFNE",
   authDomain: "studytracker-5bf4f.firebaseapp.com",
@@ -15,459 +14,436 @@ const firebaseConfig = {
 
 const firebaseApp = firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
-/* ---------- REAL-TIME LISTENERS REGISTRY ---------- */
 const activeListeners = {};
 
-/* ---------- LOCAL STORAGE MANAGER ---------- */
+/* ---------- LOCAL DB ---------- */
 const LocalDB = {
-  get(sheetName) {
-    const data = localStorage.getItem(`sheets_${sheetName}`);
-    return data ? JSON.parse(data) : [];
-  },
-
-  append(sheetName, rowData) {
-    const data = this.get(sheetName);
-    data.push(rowData);
-    localStorage.setItem(`sheets_${sheetName}`, JSON.stringify(data));
+  get(n) { const d = localStorage.getItem(`sheets_${n}`); return d ? JSON.parse(d) : []; },
+  append(n, row) { const d = this.get(n); d.push(row); localStorage.setItem(`sheets_${n}`, JSON.stringify(d)); return true; },
+  update(n, id, u) {
+    const d = this.get(n);
+    const i = d.findIndex(x => String(x.id) === String(id));
+    if (i !== -1) { d[i] = { ...d[i], ...u }; localStorage.setItem(`sheets_${n}`, JSON.stringify(d)); }
     return true;
   },
-
-  update(sheetName, id, updates) {
-    const data = this.get(sheetName);
-    const index = data.findIndex(item => String(item.id) === String(id));
-    if (index !== -1) {
-      data[index] = { ...data[index], ...updates };
-      localStorage.setItem(`sheets_${sheetName}`, JSON.stringify(data));
-    }
-    return true;
-  },
-
-  delete(sheetName, id) {
-    let data = this.get(sheetName);
-    data = data.filter(item => String(item.id) !== String(id));
-    localStorage.setItem(`sheets_${sheetName}`, JSON.stringify(data));
-    return true;
-  },
-
-  set(sheetName, data) {
-    localStorage.setItem(`sheets_${sheetName}`, JSON.stringify(data));
-  }
+  delete(n, id) { const d = this.get(n).filter(x => String(x.id) !== String(id)); localStorage.setItem(`sheets_${n}`, JSON.stringify(d)); return true; },
+  set(n, d) { localStorage.setItem(`sheets_${n}`, JSON.stringify(d)); }
 };
 
-/* ---------- FIREBASE HELPERS ---------- */
+/* ---------- FIREBASE DB ---------- */
 const FirebaseDB = {
-  ref(sheetName) {
-    return db.ref(sheetName);
-  },
-
-  async get(sheetName) {
+  ref(n) { return db.ref(n); },
+  async get(n) {
     try {
-      const snapshot = await this.ref(sheetName).once('value');
-      const val = snapshot.val();
+      const snap = await this.ref(n).once('value');
+      const val = snap.val();
       if (!val) return [];
       if (Array.isArray(val)) return val.filter(Boolean);
-      return Object.keys(val).map(key => ({ _firebaseKey: key, ...val[key] }));
-    } catch (error) {
-      console.error(`Firebase GET error for ${sheetName}:`, error);
-      return LocalDB.get(sheetName);
-    }
+      return Object.keys(val).map(k => ({ _firebaseKey: k, ...val[k] }));
+    } catch (e) { console.error(`FB GET ${n}:`, e); return LocalDB.get(n); }
   },
-
-  async append(sheetName, rowData) {
-    try {
-      const newRef = this.ref(sheetName).push();
-      await newRef.set(rowData);
-      return true;
-    } catch (error) {
-      console.error(`Firebase APPEND error for ${sheetName}:`, error);
-      LocalDB.append(sheetName, rowData);
-      return false;
-    }
+  async append(n, row) {
+    try { await this.ref(n).push().set(row); return true; }
+    catch (e) { console.error(`FB APPEND ${n}:`, e); LocalDB.append(n, row); return false; }
   },
-
-  async update(sheetName, id, updates) {
+  async update(n, id, u) {
     try {
-      let snapshot = await this.ref(sheetName).orderByChild('id').equalTo(Number(id)).once('value');
-      let val = snapshot.val();
-      if (!val) {
-        snapshot = await this.ref(sheetName).orderByChild('id').equalTo(String(id)).once('value');
-        val = snapshot.val();
-      }
-      if (!val) { console.warn(`Record with id ${id} not found in ${sheetName}`); return false; }
-      const firebaseKey = Object.keys(val)[0];
-      await this.ref(sheetName).child(firebaseKey).update(updates);
+      let snap = await this.ref(n).orderByChild('id').equalTo(Number(id)).once('value');
+      let val = snap.val();
+      if (!val) { snap = await this.ref(n).orderByChild('id').equalTo(String(id)).once('value'); val = snap.val(); }
+      if (!val) return false;
+      await this.ref(n).child(Object.keys(val)[0]).update(u);
       return true;
-    } catch (error) {
-      console.error(`Firebase UPDATE error for ${sheetName}:`, error);
-      LocalDB.update(sheetName, id, updates);
-      return false;
-    }
+    } catch (e) { console.error(`FB UPDATE ${n}:`, e); LocalDB.update(n, id, u); return false; }
   },
-
-  async delete(sheetName, id) {
+  async delete(n, id) {
     try {
-      let snapshot = await this.ref(sheetName).orderByChild('id').equalTo(Number(id)).once('value');
-      let val = snapshot.val();
-      if (!val) {
-        snapshot = await this.ref(sheetName).orderByChild('id').equalTo(String(id)).once('value');
-        val = snapshot.val();
-      }
-      if (!val) { console.warn(`Record with id ${id} not found in ${sheetName}`); return false; }
-      const firebaseKey = Object.keys(val)[0];
-      await this.ref(sheetName).child(firebaseKey).remove();
+      let snap = await this.ref(n).orderByChild('id').equalTo(Number(id)).once('value');
+      let val = snap.val();
+      if (!val) { snap = await this.ref(n).orderByChild('id').equalTo(String(id)).once('value'); val = snap.val(); }
+      if (!val) return false;
+      await this.ref(n).child(Object.keys(val)[0]).remove();
       return true;
-    } catch (error) {
-      console.error(`Firebase DELETE error for ${sheetName}:`, error);
-      LocalDB.delete(sheetName, id);
-      return false;
-    }
+    } catch (e) { console.error(`FB DELETE ${n}:`, e); LocalDB.delete(n, id); return false; }
   }
 };
 
-/* ---------- SHEET CATEGORIES ---------- */
-const FIREBASE_SHEETS = ['Subjects', 'Chapters', 'Homework', 'Assignments', 'Tests', 'Todos', 'Goals'];
-const LOCAL_ONLY_SHEETS = ['Parameters'];
+/* ---------- SHEET CONFIG ---------- */
+const FIREBASE_SHEETS = ['Subjects','Chapters','Homework','Assignments','Tests','Todos','Goals','Exams','Notes'];
+const LOCAL_ONLY_SHEETS = ['Parameters','ChapterMeta'];
 
 /* ---------- UNIFIED API ---------- */
 const API = {
-  async getData(sheetName) {
-    if (LOCAL_ONLY_SHEETS.includes(sheetName)) return LocalDB.get(sheetName);
+  async getData(n) {
+    if (LOCAL_ONLY_SHEETS.includes(n)) return LocalDB.get(n);
     try {
-      const data = await FirebaseDB.get(sheetName);
-      if (data.length > 0) LocalDB.set(sheetName, data);
-      return data.length > 0 ? data : LocalDB.get(sheetName);
-    } catch (error) {
-      console.error(`API getData failed for ${sheetName}:`, error);
-      return LocalDB.get(sheetName);
-    }
+      const d = await FirebaseDB.get(n);
+      if (d.length > 0) LocalDB.set(n, d);
+      return d.length > 0 ? d : LocalDB.get(n);
+    } catch (e) { return LocalDB.get(n); }
   },
-
-  async postData(sheetName, rowData) {
-    if (LOCAL_ONLY_SHEETS.includes(sheetName)) return LocalDB.append(sheetName, rowData);
-    LocalDB.append(sheetName, rowData);
-    return await FirebaseDB.append(sheetName, rowData);
+  async postData(n, row) {
+    if (LOCAL_ONLY_SHEETS.includes(n)) return LocalDB.append(n, row);
+    LocalDB.append(n, row);
+    return await FirebaseDB.append(n, row);
   },
-
-  async updateData(sheetName, id, updates) {
-    if (LOCAL_ONLY_SHEETS.includes(sheetName)) return LocalDB.update(sheetName, id, updates);
-    LocalDB.update(sheetName, id, updates);
-    return await FirebaseDB.update(sheetName, id, updates);
+  async updateData(n, id, u) {
+    if (LOCAL_ONLY_SHEETS.includes(n)) return LocalDB.update(n, id, u);
+    LocalDB.update(n, id, u);
+    return await FirebaseDB.update(n, id, u);
   },
-
-  async deleteData(sheetName, id) {
-    if (LOCAL_ONLY_SHEETS.includes(sheetName)) return LocalDB.delete(sheetName, id);
-    LocalDB.delete(sheetName, id);
-    return await FirebaseDB.delete(sheetName, id);
+  async deleteData(n, id) {
+    if (LOCAL_ONLY_SHEETS.includes(n)) return LocalDB.delete(n, id);
+    LocalDB.delete(n, id);
+    return await FirebaseDB.delete(n, id);
   },
-
-  onDataChange(sheetName, callback) {
-    if (LOCAL_ONLY_SHEETS.includes(sheetName)) return;
-    if (activeListeners[sheetName]) {
-      FirebaseDB.ref(sheetName).off('value', activeListeners[sheetName]);
-    }
-    const listener = FirebaseDB.ref(sheetName).on('value', (snapshot) => {
-      const val = snapshot.val();
-      let data = [];
-      if (val) {
-        if (Array.isArray(val)) {
-          data = val.filter(Boolean);
-        } else {
-          data = Object.keys(val).map(key => ({ _firebaseKey: key, ...val[key] }));
-        }
-      }
-      LocalDB.set(sheetName, data);
-      if (typeof callback === 'function') callback(data);
+  onDataChange(n, cb) {
+    if (LOCAL_ONLY_SHEETS.includes(n)) return;
+    if (activeListeners[n]) FirebaseDB.ref(n).off('value', activeListeners[n]);
+    activeListeners[n] = FirebaseDB.ref(n).on('value', snap => {
+      const val = snap.val();
+      const data = !val ? [] : Array.isArray(val) ? val.filter(Boolean) : Object.keys(val).map(k => ({ _firebaseKey: k, ...val[k] }));
+      LocalDB.set(n, data);
+      if (typeof cb === 'function') cb(data);
     });
-    activeListeners[sheetName] = listener;
   },
-
   async syncAll() {
-    const promises = FIREBASE_SHEETS.map(async (sheet) => {
-      try {
-        const data = await FirebaseDB.get(sheet);
-        if (data && data.length > 0) LocalDB.set(sheet, data);
-      } catch (e) {
-        console.warn(`Sync failed for ${sheet}`, e);
-      }
-    });
-    await Promise.allSettled(promises);
+    await Promise.allSettled(FIREBASE_SHEETS.map(async n => {
+      try { const d = await FirebaseDB.get(n); if (d && d.length > 0) LocalDB.set(n, d); } catch (e) {}
+    }));
   }
 };
 
-/* ---------- TAB FOCUS SYNC ---------- */
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    if (typeof refreshCurrentView === 'function') refreshCurrentView();
-  }
+  if (document.visibilityState === 'visible' && typeof refreshCurrentView === 'function') refreshCurrentView();
 });
 
-/* ---------- SEED DATA ---------- */
+/* ============================================
+   CHAPTER META — Strength + Revision
+   ============================================ */
+function getChapterMeta(chapterId) {
+  const meta = LocalDB.get('ChapterMeta');
+  return meta.find(m => String(m.chapter_id) === String(chapterId))
+    || { chapter_id: chapterId, strength: 'Average', last_revised: null };
+}
+
+function updateChapterMeta(chapterId, updates) {
+  const meta = LocalDB.get('ChapterMeta');
+  const idx  = meta.findIndex(m => String(m.chapter_id) === String(chapterId));
+  if (idx !== -1) { meta[idx] = { ...meta[idx], ...updates }; }
+  else { meta.push({ chapter_id: String(chapterId), strength: 'Average', last_revised: null, ...updates }); }
+  LocalDB.set('ChapterMeta', meta);
+}
+
+/* ============================================
+   ACTIVITY LOG — Heatmap
+   ============================================ */
+function logActivity(count = 1) {
+  const today = getTodayStr();
+  const log = JSON.parse(localStorage.getItem('studyActivityLog') || '{}');
+  log[today] = (log[today] || 0) + count;
+  localStorage.setItem('studyActivityLog', JSON.stringify(log));
+}
+
+function getActivityLog() {
+  return JSON.parse(localStorage.getItem('studyActivityLog') || '{}');
+}
+
+/* ============================================
+   DAILY STUDY PLAN
+   ============================================ */
+function getTodayPlan() {
+  return JSON.parse(localStorage.getItem(`studyPlan_${getTodayStr()}`) || '[]');
+}
+function saveTodayPlan(plan) {
+  localStorage.setItem(`studyPlan_${getTodayStr()}`, JSON.stringify(plan));
+}
+function addChapterToPlan(chapterId) {
+  const plan = getTodayPlan();
+  if (!plan.find(p => String(p.chapterId) === String(chapterId))) {
+    plan.push({ chapterId: String(chapterId), done: false });
+    saveTodayPlan(plan);
+    return true;
+  }
+  return false;
+}
+function togglePlanItem(chapterId) {
+  const plan = getTodayPlan();
+  const item = plan.find(p => String(p.chapterId) === String(chapterId));
+  if (item) {
+    item.done = !item.done;
+    if (item.done) { updateChapterMeta(chapterId, { last_revised: getTodayStr() }); logActivity(2); }
+    saveTodayPlan(plan);
+    return item.done;
+  }
+  return false;
+}
+function removePlanItem(chapterId) {
+  saveTodayPlan(getTodayPlan().filter(p => String(p.chapterId) !== String(chapterId)));
+}
+
+/* ============================================
+   HEALTH SCORE
+   ============================================ */
+function calculateSubjectHealthScore(subjectId) {
+  const chapters = LocalDB.get('Chapters').filter(c => c.subject_id === subjectId);
+  if (chapters.length === 0) return 0;
+  const subject     = LocalDB.get('Subjects').find(s => s.id === subjectId);
+  const subjectName = subject ? subject.name : '';
+
+  const paramScore = calculateSubjectProgress(subjectId);
+
+  const allHW = LocalDB.get('Homework').filter(h => h.subject === subjectName);
+  const hwScore = allHW.length > 0
+    ? Math.round(allHW.filter(h => h.status === 'Done').length / allHW.length * 100) : 100;
+
+  const tests = LocalDB.get('Tests').filter(t => t.subject === subjectName);
+  const testScore = tests.length > 0
+    ? Math.round(tests.reduce((s, t) => s + (t.marks / t.total * 100), 0) / tests.length) : 50;
+
+  const freshList = chapters.map(ch => {
+    const m = getChapterMeta(ch.id);
+    if (!m.last_revised) return 0;
+    return Math.max(0, 100 - Math.floor((Date.now() - new Date(m.last_revised)) / 86400000) * 5);
+  });
+  const freshnessScore = Math.round(freshList.reduce((a, b) => a + b, 0) / freshList.length);
+
+  return Math.min(100, Math.round(paramScore * 0.4 + hwScore * 0.2 + testScore * 0.25 + freshnessScore * 0.15));
+}
+
+/* ============================================
+   PRIORITY QUEUE
+   ============================================ */
+function generatePriorityQueue(limit = 8) {
+  const chapters = LocalDB.get('Chapters');
+  const exams    = LocalDB.get('Exams') || [];
+  const now      = Date.now();
+
+  return chapters.map(ch => {
+    const progress   = calculateChapterProgress(ch.id);
+    const meta       = getChapterMeta(ch.id);
+    const subject    = LocalDB.get('Subjects').find(s => s.id === ch.subject_id);
+    const strengthMul = { Weak: 1.7, Average: 1.0, Strong: 0.3 }[meta.strength] || 1.0;
+
+    let examMul = 1.0;
+    const nearestExam = exams
+      .filter(e => Number(e.subject_id) === Number(ch.subject_id))
+      .map(e => (new Date(e.date) - now) / 86400000)
+      .filter(d => d > 0)
+      .sort((a, b) => a - b)[0];
+    if (nearestExam !== undefined) {
+      if (nearestExam <= 7) examMul = 2.2;
+      else if (nearestExam <= 14) examMul = 1.6;
+      else if (nearestExam <= 30) examMul = 1.2;
+    }
+
+    let staleMul = 1.2;
+    if (meta.last_revised) {
+      const days = (now - new Date(meta.last_revised)) / 86400000;
+      staleMul = days > 14 ? 1.4 : days > 7 ? 1.1 : 0.9;
+    }
+
+    return {
+      ...ch, progress, strength: meta.strength, last_revised: meta.last_revised,
+      subjectName: subject ? subject.name : '',
+      subjectColor: subject ? subject.color : '#3D7A55',
+      priority: (1 - progress / 100) * strengthMul * examMul * staleMul
+    };
+  })
+  .filter(ch => ch.priority > 0.05)
+  .sort((a, b) => b.priority - a.priority)
+  .slice(0, limit);
+}
+
+/* ============================================
+   PROGRESS CALCULATIONS
+   ============================================ */
+function calculateChapterProgress(chapterId) {
+  const params   = LocalDB.get('Parameters').filter(p => p.chapter_id === chapterId);
+  const chapter  = LocalDB.get('Chapters').find(c => String(c.id) === String(chapterId));
+  const name     = chapter ? chapter.name : null;
+  const hw       = name ? LocalDB.get('Homework').filter(h => h.chapter === name) : [];
+  const asgn     = name ? LocalDB.get('Assignments').filter(a => a.chapter === name) : [];
+  const total    = params.length + hw.length + asgn.length;
+  if (total === 0) return 0;
+  const done = params.filter(p => p.status === 'Completed').length
+             + hw.filter(h => h.status === 'Done').length
+             + asgn.filter(a => a.status === 'Done').length;
+  return Math.round((done / total) * 100);
+}
+
+function calculateSubjectProgress(subjectId) {
+  const chapters = LocalDB.get('Chapters').filter(c => c.subject_id === subjectId);
+  if (chapters.length === 0) return 0;
+  return Math.round(chapters.reduce((s, ch) => s + calculateChapterProgress(ch.id), 0) / chapters.length);
+}
+
+function updateChapterProgress(chapterId) {
+  const p = calculateChapterProgress(chapterId);
+  LocalDB.update('Chapters', chapterId, { progress: p });
+  return p;
+}
+
+/* ============================================
+   RECURRING HOMEWORK PROCESSOR
+   ============================================ */
+async function processRecurringHomework() {
+  const today = getTodayStr();
+  const allHW = await API.getData('Homework');
+  const due = allHW.filter(h => h.recurring && h.status === 'Done' && h.next_due && h.next_due <= today);
+  for (const hw of due) {
+    const nd = new Date(hw.next_due);
+    nd.setDate(nd.getDate() + 7);
+    const nextDueStr = nd.toISOString().split('T')[0];
+    await API.postData('Homework', {
+      id: generateId(), title: hw.title, subject: hw.subject, chapter: hw.chapter,
+      date: hw.next_due, status: 'Pending', file_url: '', recurring: true, next_due: nextDueStr
+    });
+    await API.updateData('Homework', hw.id, { next_due: nextDueStr });
+  }
+}
+
+/* ============================================
+   SEED + MIGRATIONS
+   ============================================ */
 async function initializeSeedData() {
   try {
-    const existingSubjects = await FirebaseDB.get('Subjects');
-
-    if (existingSubjects.length > 0) {
-      console.log('[Init] Firebase already has data, skipping seed.');
+    const existing = await FirebaseDB.get('Subjects');
+    if (existing.length > 0) {
       await API.syncAll();
       await seedParametersLocally();
       await runMigrations();
+      await processRecurringHomework();
       return;
     }
-
-    console.log('[Init] Seeding Firebase with initial data...');
-
     const subjects = [
       { id: 1, name: "Physics",   icon: "⚡", color: "#3D7A55" },
       { id: 2, name: "Chemistry", icon: "🧪", color: "#5B9E6E" },
       { id: 3, name: "Maths",     icon: "📐", color: "#C87941" },
       { id: 5, name: "English",   icon: "📖", color: "#7DAF8A" }
     ];
-
     const chapters = [
-      // Physics (14 chapters)
-      { id: 1,  subject_id: 1, name: "Electric Charges and Fields", progress: 0 },
-      { id: 2,  subject_id: 1, name: "Electrostatic Potential and Capacitance", progress: 0 },
-      { id: 3,  subject_id: 1, name: "Current Electricity", progress: 0 },
-      { id: 4,  subject_id: 1, name: "Moving Charges and Magnetism", progress: 0 },
-      { id: 5,  subject_id: 1, name: "Magnetism and Matter", progress: 0 },
-      { id: 6,  subject_id: 1, name: "Electromagnetic Induction", progress: 0 },
-      { id: 7,  subject_id: 1, name: "Alternating Current", progress: 0 },
-      { id: 8,  subject_id: 1, name: "Electromagnetic Waves", progress: 0 },
-      { id: 9,  subject_id: 1, name: "Ray Optics", progress: 0 },
-      { id: 10, subject_id: 1, name: "Wave Optics", progress: 0 },
-      { id: 11, subject_id: 1, name: "Dual Nature of Radiation and Matter", progress: 0 },
-      { id: 12, subject_id: 1, name: "Atoms", progress: 0 },
-      { id: 13, subject_id: 1, name: "Nuclei", progress: 0 },
-      { id: 14, subject_id: 1, name: "Semiconductor Electronics", progress: 0 },
-
-      // Chemistry (10 chapters)
-      { id: 15, subject_id: 2, name: "Solutions", progress: 0 },
-      { id: 16, subject_id: 2, name: "Electrochemistry", progress: 0 },
-      { id: 17, subject_id: 2, name: "Chemical Kinetics", progress: 0 },
-      { id: 18, subject_id: 2, name: "d and f Block Elements", progress: 0 },
-      { id: 19, subject_id: 2, name: "Coordination Compounds", progress: 0 },
-      { id: 20, subject_id: 2, name: "Haloalkanes and Haloarenes", progress: 0 },
-      { id: 21, subject_id: 2, name: "Alcohols, Phenols and Ethers", progress: 0 },
-      { id: 22, subject_id: 2, name: "Aldehydes, Ketones", progress: 0 },
-      { id: 23, subject_id: 2, name: "Amines", progress: 0 },
-      { id: 24, subject_id: 2, name: "Biomolecules", progress: 0 },
-
-      // Maths (13 chapters)
-      { id: 25, subject_id: 3, name: "Relations and Functions", progress: 0 },
-      { id: 26, subject_id: 3, name: "Inverse Trigonometric Functions", progress: 0 },
-      { id: 27, subject_id: 3, name: "Matrices", progress: 0 },
-      { id: 28, subject_id: 3, name: "Determinants", progress: 0 },
-      { id: 29, subject_id: 3, name: "Continuity and Differentiability", progress: 0 },
-      { id: 30, subject_id: 3, name: "Applications of Derivatives", progress: 0 },
-      { id: 31, subject_id: 3, name: "Integrals", progress: 0 },
-      { id: 32, subject_id: 3, name: "Applications of Integrals", progress: 0 },
-      { id: 33, subject_id: 3, name: "Differential Equations", progress: 0 },
-      { id: 34, subject_id: 3, name: "Vector Algebra", progress: 0 },
-      { id: 35, subject_id: 3, name: "Three Dimensional Geometry", progress: 0 },
-      { id: 36, subject_id: 3, name: "Linear Programming", progress: 0 },
-      { id: 37, subject_id: 3, name: "Probability", progress: 0 },
-
-      // English — Flamingo Prose (8)
-      { id: 44, subject_id: 5, name: "The Last Lesson", progress: 0 },
-      { id: 45, subject_id: 5, name: "Lost Spring", progress: 0 },
-      { id: 46, subject_id: 5, name: "Deep Water", progress: 0 },
-      { id: 47, subject_id: 5, name: "The Rattrap", progress: 0 },
-      { id: 48, subject_id: 5, name: "Indigo", progress: 0 },
-      { id: 49, subject_id: 5, name: "Poets and Pancakes", progress: 0 },
-      { id: 50, subject_id: 5, name: "The Interview", progress: 0 },
-      { id: 51, subject_id: 5, name: "Going Places", progress: 0 },
-
-      // English — Flamingo Poetry (5)
-      { id: 52, subject_id: 5, name: "My Mother at Sixty-six", progress: 0 },
-      { id: 53, subject_id: 5, name: "Keeping Quiet", progress: 0 },
-      { id: 54, subject_id: 5, name: "A Thing of Beauty", progress: 0 },
-      { id: 55, subject_id: 5, name: "A Roadside Stand", progress: 0 },
-      { id: 56, subject_id: 5, name: "Aunt Jennifer's Tigers", progress: 0 },
-
-      // English — Vistas (6)
-      { id: 57, subject_id: 5, name: "The Third Level", progress: 0 },
-      { id: 58, subject_id: 5, name: "The Tiger King", progress: 0 },
-      { id: 59, subject_id: 5, name: "Journey to the End of the Earth", progress: 0 },
-      { id: 60, subject_id: 5, name: "The Enemy", progress: 0 },
-      { id: 61, subject_id: 5, name: "On the Face of It", progress: 0 },
-      { id: 62, subject_id: 5, name: "Memories of Childhood", progress: 0 }
+      {id:1,subject_id:1,name:"Electric Charges and Fields",progress:0},
+      {id:2,subject_id:1,name:"Electrostatic Potential and Capacitance",progress:0},
+      {id:3,subject_id:1,name:"Current Electricity",progress:0},
+      {id:4,subject_id:1,name:"Moving Charges and Magnetism",progress:0},
+      {id:5,subject_id:1,name:"Magnetism and Matter",progress:0},
+      {id:6,subject_id:1,name:"Electromagnetic Induction",progress:0},
+      {id:7,subject_id:1,name:"Alternating Current",progress:0},
+      {id:8,subject_id:1,name:"Electromagnetic Waves",progress:0},
+      {id:9,subject_id:1,name:"Ray Optics",progress:0},
+      {id:10,subject_id:1,name:"Wave Optics",progress:0},
+      {id:11,subject_id:1,name:"Dual Nature of Radiation and Matter",progress:0},
+      {id:12,subject_id:1,name:"Atoms",progress:0},
+      {id:13,subject_id:1,name:"Nuclei",progress:0},
+      {id:14,subject_id:1,name:"Semiconductor Electronics",progress:0},
+      {id:15,subject_id:2,name:"Solutions",progress:0},
+      {id:16,subject_id:2,name:"Electrochemistry",progress:0},
+      {id:17,subject_id:2,name:"Chemical Kinetics",progress:0},
+      {id:18,subject_id:2,name:"d and f Block Elements",progress:0},
+      {id:19,subject_id:2,name:"Coordination Compounds",progress:0},
+      {id:20,subject_id:2,name:"Haloalkanes and Haloarenes",progress:0},
+      {id:21,subject_id:2,name:"Alcohols, Phenols and Ethers",progress:0},
+      {id:22,subject_id:2,name:"Aldehydes, Ketones",progress:0},
+      {id:23,subject_id:2,name:"Amines",progress:0},
+      {id:24,subject_id:2,name:"Biomolecules",progress:0},
+      {id:25,subject_id:3,name:"Relations and Functions",progress:0},
+      {id:26,subject_id:3,name:"Inverse Trigonometric Functions",progress:0},
+      {id:27,subject_id:3,name:"Matrices",progress:0},
+      {id:28,subject_id:3,name:"Determinants",progress:0},
+      {id:29,subject_id:3,name:"Continuity and Differentiability",progress:0},
+      {id:30,subject_id:3,name:"Applications of Derivatives",progress:0},
+      {id:31,subject_id:3,name:"Integrals",progress:0},
+      {id:32,subject_id:3,name:"Applications of Integrals",progress:0},
+      {id:33,subject_id:3,name:"Differential Equations",progress:0},
+      {id:34,subject_id:3,name:"Vector Algebra",progress:0},
+      {id:35,subject_id:3,name:"Three Dimensional Geometry",progress:0},
+      {id:36,subject_id:3,name:"Linear Programming",progress:0},
+      {id:37,subject_id:3,name:"Probability",progress:0},
+      {id:44,subject_id:5,name:"The Last Lesson",progress:0},
+      {id:45,subject_id:5,name:"Lost Spring",progress:0},
+      {id:46,subject_id:5,name:"Deep Water",progress:0},
+      {id:47,subject_id:5,name:"The Rattrap",progress:0},
+      {id:48,subject_id:5,name:"Indigo",progress:0},
+      {id:49,subject_id:5,name:"Poets and Pancakes",progress:0},
+      {id:50,subject_id:5,name:"The Interview",progress:0},
+      {id:51,subject_id:5,name:"Going Places",progress:0},
+      {id:52,subject_id:5,name:"My Mother at Sixty-six",progress:0},
+      {id:53,subject_id:5,name:"Keeping Quiet",progress:0},
+      {id:54,subject_id:5,name:"A Thing of Beauty",progress:0},
+      {id:55,subject_id:5,name:"A Roadside Stand",progress:0},
+      {id:56,subject_id:5,name:"Aunt Jennifer's Tigers",progress:0},
+      {id:57,subject_id:5,name:"The Third Level",progress:0},
+      {id:58,subject_id:5,name:"The Tiger King",progress:0},
+      {id:59,subject_id:5,name:"Journey to the End of the Earth",progress:0},
+      {id:60,subject_id:5,name:"The Enemy",progress:0},
+      {id:61,subject_id:5,name:"On the Face of It",progress:0},
+      {id:62,subject_id:5,name:"Memories of Childhood",progress:0}
     ];
-
-    const seedOps = [
+    await Promise.allSettled([
       ...subjects.map(s => FirebaseDB.append('Subjects', s)),
       ...chapters.map(c => FirebaseDB.append('Chapters', c)),
-    ];
-
-    await Promise.allSettled(seedOps);
-    console.log('[Init] Seed data written to Firebase');
-
+    ]);
     await API.syncAll();
     await seedParametersLocally();
-
-  } catch (error) {
-    console.error('[Init] Seed error:', error);
-  }
+  } catch (e) { console.error('[Init] Seed error:', e); }
 }
 
-/* ---------- PARAMETER SEED (NCERT-only for English) ---------- */
 async function seedParametersLocally() {
-  const existingParams = LocalDB.get('Parameters');
-  if (existingParams.length > 0) return;
-
+  if (LocalDB.get('Parameters').length > 0) return;
   let chapters = LocalDB.get('Chapters');
-  if (chapters.length === 0) chapters = await FirebaseDB.get('Chapters');
-  if (chapters.length === 0) return;
+  if (!chapters.length) chapters = await FirebaseDB.get('Chapters');
+  if (!chapters.length) return;
 
-  // English chapter IDs (subject_id 5)
-  const englishChapterIds = new Set([
-    44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62
-  ]);
-
-  const standardParams = [
-    "NCERT", "Help Book", "Module",
-    "PYQ (Boards)", "PYQ (JEE Mains)", "PYQ (JEE Advanced)", "Short Notes"
-  ];
-
-  const params = [];
+  const englishIds = new Set([44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62]);
+  const stdParams  = ["NCERT","Help Book","Module","PYQ (Boards)","PYQ (JEE Mains)","PYQ (JEE Advanced)","Short Notes"];
   let paramId = 1;
-
-  // Filter out CS chapters (subject_id 4) in case they slipped through
-  const validChapters = chapters.filter(c => c.subject_id !== 4);
-
-  validChapters.forEach(chapter => {
-    const types = englishChapterIds.has(chapter.id) ? ["NCERT"] : standardParams;
-    types.forEach(type => {
-      params.push({
-        id: paramId++,
-        chapter_id: chapter.id,
-        type,
-        status: "Pending",
-        file_url: "",
-        upload_date: ""
-      });
-    });
+  const params = [];
+  chapters.filter(c => c.subject_id !== 4).forEach(ch => {
+    const types = englishIds.has(ch.id) ? ["NCERT"] : stdParams;
+    types.forEach(type => params.push({ id: paramId++, chapter_id: ch.id, type, status: "Pending", file_url: "", upload_date: "" }));
   });
-
   LocalDB.set('Parameters', params);
-  console.log(`[Init] Seeded ${params.length} parameters locally`);
 }
 
-/* ---------- MIGRATIONS (run once on existing data) ---------- */
 async function runMigrations() {
-  const migrationKey = 'migration_v3_done';
-  if (localStorage.getItem(migrationKey)) return;
-
-  console.log('[Migration] Running data migrations...');
-
+  if (localStorage.getItem('migration_v4_done')) return;
   try {
-    // 1. Remove Computer Science subject (id:4) from Firebase
     await FirebaseDB.delete('Subjects', 4);
-
-    // 2. Remove CS chapters (ids 38-43) from Firebase
-    const csChapterIds = [38, 39, 40, 41, 42, 43];
-    await Promise.allSettled(csChapterIds.map(id => FirebaseDB.delete('Chapters', id)));
-
-    // 3. Remove CS from LocalDB
+    const csIds = [38,39,40,41,42,43];
+    await Promise.allSettled(csIds.map(id => FirebaseDB.delete('Chapters', id)));
     LocalDB.set('Subjects', LocalDB.get('Subjects').filter(s => s.id !== 4));
     LocalDB.set('Chapters', LocalDB.get('Chapters').filter(c => c.subject_id !== 4));
-
-    // 4. Clean English parameters — keep NCERT only
-    const englishChapterIds = new Set([
-      44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62
-    ]);
-    const allParams = LocalDB.get('Parameters');
-    const cleanedParams = allParams.filter(p => {
-      if (englishChapterIds.has(p.chapter_id)) {
-        return p.type === 'NCERT';
-      }
-      // Also remove any CS chapter params (chapter_ids 38-43)
-      if (csChapterIds.includes(p.chapter_id)) return false;
+    const englishIds = new Set([44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62]);
+    LocalDB.set('Parameters', LocalDB.get('Parameters').filter(p => {
+      if (englishIds.has(p.chapter_id)) return p.type === 'NCERT';
+      if (csIds.includes(p.chapter_id)) return false;
       return true;
-    });
-    LocalDB.set('Parameters', cleanedParams);
-    console.log(`[Migration] Parameters cleaned: ${allParams.length} → ${cleanedParams.length}`);
-
-    localStorage.setItem(migrationKey, 'true');
-    console.log('[Migration] Done.');
-  } catch (err) {
-    console.error('[Migration] Error:', err);
-  }
+    }));
+    localStorage.setItem('migration_v4_done', 'true');
+  } catch (e) { console.error('[Migration]', e); }
 }
 
-/* ---------- UTILITY FUNCTIONS ---------- */
-function generateId() {
-  return Date.now() + Math.floor(Math.random() * 1000);
+/* ---------- UTILITIES ---------- */
+function generateId() { return Date.now() + Math.floor(Math.random() * 1000); }
+function formatDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
+function getTodayStr() { return new Date().toISOString().split('T')[0]; }
+function getDaysUntil(d) { if (!d) return null; return Math.ceil((new Date(d) - new Date(getTodayStr())) / 86400000); }
+
+function showToast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  if (!c) return;
+  const icons = { success:'✓', error:'✕', warning:'⚠', info:'ℹ' };
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.animation = 'toastSlideOut 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, 3000);
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function getTodayStr() {
-  return new Date().toISOString().split('T')[0];
-}
-
-/**
- * calculateChapterProgress — includes Parameters + Homework + Assignments
- * All three contribute equally per-item to the overall chapter progress.
- */
-function calculateChapterProgress(chapterId) {
-  const params = LocalDB.get('Parameters').filter(p => p.chapter_id === chapterId);
-
-  // Get chapter name to look up homework & assignments
-  const chapters = LocalDB.get('Chapters');
-  const chapter = chapters.find(c => String(c.id) === String(chapterId));
-  const chapterName = chapter ? chapter.name : null;
-
-  const homework    = chapterName ? LocalDB.get('Homework').filter(h => h.chapter === chapterName) : [];
-  const assignments = chapterName ? LocalDB.get('Assignments').filter(a => a.chapter === chapterName) : [];
-
-  const totalItems = params.length + homework.length + assignments.length;
-  if (totalItems === 0) return 0;
-
-  const completedParams = params.filter(p => p.status === 'Completed').length;
-  const doneHW          = homework.filter(h => h.status === 'Done').length;
-  const doneAsgn        = assignments.filter(a => a.status === 'Done').length;
-
-  return Math.round(((completedParams + doneHW + doneAsgn) / totalItems) * 100);
-}
-
-function calculateSubjectProgress(subjectId) {
-  const chapters = LocalDB.get('Chapters').filter(c => c.subject_id === subjectId);
-  if (chapters.length === 0) return 0;
-  const total = chapters.reduce((sum, ch) => sum + calculateChapterProgress(ch.id), 0);
-  return Math.round(total / chapters.length);
-}
-
-function updateChapterProgress(chapterId) {
-  const progress = calculateChapterProgress(chapterId);
-  LocalDB.update('Chapters', chapterId, { progress });
-  return progress;
-}
-
-/* ---------- TOAST NOTIFICATIONS ---------- */
-function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${icons[type]}</span><span>${message}</span>`;
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.animation = 'toastSlideOut 0.3s ease forwards';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
-
-/* ---------- READY FLAG ---------- */
 window._apiReady = initializeSeedData().then(() => {
-  console.log('[Init] API ready');
   window.dispatchEvent(new Event('apiReady'));
 }).catch(err => {
-  console.error('[Init] API init failed:', err);
+  console.error('[Init] failed:', err);
   window.dispatchEvent(new Event('apiReady'));
 });
