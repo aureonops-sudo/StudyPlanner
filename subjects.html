@@ -7,46 +7,41 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body data-page="subjects">
-  <div class="app-container">
-
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">🌿</div>
-        <div><h1>StudyTracker</h1><span>Productivity System</span></div>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="index.html"       class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-        <a href="subjects.html"    class="nav-item active"><span class="nav-icon">📚</span> Subjects</a>
-        <a href="homework.html"    class="nav-item"><span class="nav-icon">📝</span> Homework</a>
-        <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
-        <a href="tests.html"       class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
-      </nav>
-    </aside>
-
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
-    <main class="main-content">
-      <div class="page-wrapper">
-        <div class="page-header">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
-            <h1>📚 Subjects</h1>
-          </div>
+<div class="app-container">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🌿</div>
+      <div><h1>StudyTracker</h1><span>Productivity System</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html"       class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="subjects.html"    class="nav-item active"><span class="nav-icon">📚</span> Subjects</a>
+      <a href="homework.html"    class="nav-item"><span class="nav-icon">📝</span> Homework</a>
+      <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
+      <a href="tests.html"       class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
+    </nav>
+  </aside>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <main class="main-content">
+    <div class="page-wrapper">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+          <h1>📚 Subjects</h1>
         </div>
-        <div class="grid-3" id="subjects-grid"></div>
       </div>
-    </main>
-  </div>
-
-  <div class="toast-container" id="toast-container"></div>
-
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/subjects.js"></script>
-  <script>
-    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
-    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
-  </script>
+      <div class="grid-3" id="subjects-grid"></div>
+    </div>
+  </main>
+</div>
+<div class="toast-container" id="toast-container"></div>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/api.js"></script>
+<script src="js/subjects.js"></script>
+<script>
+  function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
+</script>
 </body>
 </html>
