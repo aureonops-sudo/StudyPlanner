@@ -6,188 +6,217 @@
   <title>Study Tracker — Dashboard</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── HEATMAP ── */
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap-months { display: flex; padding-left: 28px; margin-bottom: 4px; }
+    .heatmap-month-label { width: 16px; font-size: 10px; color: var(--text-muted); flex-shrink: 0; margin-right: 2px; }
+    .heatmap-grid { display: flex; gap: 2px; }
+    .heatmap-days { display: flex; flex-direction: column; gap: 2px; margin-right: 4px; justify-content: space-around; }
+    .heatmap-days span { font-size: 9px; color: var(--text-muted); line-height: 14px; }
+    .heatmap-col { display: flex; flex-direction: column; gap: 2px; }
+    .heatmap-cell { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+    .heatmap-cell.empty { background: transparent; }
+    .heatmap-cell.level-0 { background: rgba(61,122,85,0.08); }
+    .heatmap-cell.level-1 { background: #A8CC99; }
+    .heatmap-cell.level-2 { background: #6BA35A; }
+    .heatmap-cell.level-3 { background: #3D7A55; }
+    .heatmap-cell.level-4 { background: #1E4D2C; }
+    .heatmap-legend { display:flex;align-items:center;gap:4px;margin-top:8px;justify-content:flex-end;font-size:11px;color:var(--text-muted); }
+    .heatmap-legend-cell { width:12px;height:12px;border-radius:2px; }
+  </style>
 </head>
 <body data-page="dashboard">
-  <div class="app-container">
+<div class="app-container">
 
-    <!-- ========== SIDEBAR ========== -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">🌿</div>
-        <div>
-          <h1>StudyTracker</h1>
-          <span>Productivity System</span>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🌿</div>
+      <div><h1>StudyTracker</h1><span>Productivity System</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html"       class="nav-item active"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="subjects.html"    class="nav-item"><span class="nav-icon">📚</span> Subjects</a>
+      <a href="homework.html"    class="nav-item"><span class="nav-icon">📝</span> Homework</a>
+      <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
+      <a href="tests.html"       class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
+    </nav>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="page-wrapper">
+
+      <!-- Header -->
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+          <h1>🌿 Dashboard</h1>
+        </div>
+        <div class="date-time-widget" id="datetime-widget"><span class="date">Loading...</span></div>
+      </div>
+
+      <!-- STAT CARDS -->
+      <div class="grid-4 mb-24">
+        <div class="stat-card"><div class="stat-icon blue">📈</div><div class="stat-info"><h3 id="stat-progress">0%</h3><p>Overall Progress</p></div></div>
+        <div class="stat-card"><div class="stat-icon orange">📝</div><div class="stat-info"><h3 id="stat-homework">0</h3><p>Pending Homework</p></div></div>
+        <div class="stat-card"><div class="stat-icon red">📑</div><div class="stat-info"><h3 id="stat-assignments">0</h3><p>Pending Assignments</p></div></div>
+        <div class="stat-card"><div class="stat-icon green">🎯</div><div class="stat-info"><h3 id="stat-accuracy">0%</h3><p>Avg Test Accuracy</p></div></div>
+      </div>
+
+      <!-- HEATMAP -->
+      <div class="card mb-24">
+        <div class="card-header">
+          <span class="card-title">🔥 Study Activity — Last 16 Weeks</span>
+        </div>
+        <div class="heatmap-wrap">
+          <div id="heatmap-container"></div>
+        </div>
+        <div class="heatmap-legend">
+          Less
+          <div class="heatmap-legend-cell" style="background:rgba(61,122,85,0.08);"></div>
+          <div class="heatmap-legend-cell" style="background:#A8CC99;"></div>
+          <div class="heatmap-legend-cell" style="background:#6BA35A;"></div>
+          <div class="heatmap-legend-cell" style="background:#3D7A55;"></div>
+          <div class="heatmap-legend-cell" style="background:#1E4D2C;"></div>
+          More
         </div>
       </div>
-      <nav class="sidebar-nav">
-        <a href="index.html" class="nav-item active">
-          <span class="nav-icon">🏠</span> Dashboard
-        </a>
-        <a href="subjects.html" class="nav-item">
-          <span class="nav-icon">📚</span> Subjects
-        </a>
-        <a href="homework.html" class="nav-item">
-          <span class="nav-icon">📝</span> Homework
-        </a>
-        <a href="assignments.html" class="nav-item">
-          <span class="nav-icon">📑</span> Assignments
-        </a>
-        <a href="tests.html" class="nav-item">
-          <span class="nav-icon">📊</span> Test Analysis
-        </a>
-      </nav>
-    </aside>
 
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
-    <!-- ========== MAIN CONTENT ========== -->
-    <main class="main-content">
-      <div class="page-wrapper">
-
-        <!-- Header -->
-        <div class="page-header">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
-            <h1>🌿 Dashboard</h1>
-          </div>
-          <div class="header-right">
-            <div class="date-time-widget" id="datetime-widget">
-              <span class="date">Loading...</span>
-            </div>
-          </div>
+      <!-- CHARTS + EXAM COUNTDOWN -->
+      <div class="grid-3 mb-24">
+        <div class="card">
+          <div class="card-header"><span class="card-title">📊 Subject Progress</span></div>
+          <div class="chart-wrapper"><canvas id="subject-progress-chart"></canvas></div>
         </div>
-
-        <!-- Stat Cards -->
-        <div class="grid-4 mb-24">
-          <div class="stat-card">
-            <div class="stat-icon blue">📈</div>
-            <div class="stat-info">
-              <h3 id="stat-progress">0%</h3>
-              <p>Overall Progress</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon orange">📝</div>
-            <div class="stat-info">
-              <h3 id="stat-homework">0</h3>
-              <p>Pending Homework</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon red">📑</div>
-            <div class="stat-info">
-              <h3 id="stat-assignments">0</h3>
-              <p>Pending Assignments</p>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon green">🎯</div>
-            <div class="stat-info">
-              <h3 id="stat-accuracy">0%</h3>
-              <p>Avg Test Accuracy</p>
-            </div>
-          </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🌱 Completion</span></div>
+          <div class="chart-wrapper"><canvas id="completion-pie-chart"></canvas></div>
         </div>
-
-        <!-- Charts Row -->
-        <div class="grid-2 mb-24">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">📊 Subject Progress</span>
-            </div>
-            <div class="chart-wrapper">
-              <canvas id="subject-progress-chart"></canvas>
-            </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📅 Exam Countdown</span>
+            <button class="btn btn-secondary btn-sm" onclick="showManageExamsModal()">+ Manage</button>
           </div>
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">🌱 Completion Overview</span>
-            </div>
-            <div class="chart-wrapper">
-              <canvas id="completion-pie-chart"></canvas>
-            </div>
-          </div>
+          <div id="exam-countdown-list"></div>
         </div>
-
-        <!-- Middle Row: Todo + Goals -->
-        <div class="grid-2 mb-24">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">✅ To-Do List</span>
-            </div>
-            <div id="todo-list"></div>
-            <div class="todo-add">
-              <input type="text" id="todo-input" placeholder="Add a task..."
-                     onkeypress="if(event.key==='Enter')addTodo()" />
-              <button class="btn btn-primary btn-sm" onclick="addTodo()">Add</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">🎯 Goals</span>
-            </div>
-            <div id="goals-list"></div>
-            <div class="todo-add">
-              <input type="text" id="goal-input" placeholder="Set a goal..."
-                     onkeypress="if(event.key==='Enter')addGoal()" />
-              <button class="btn btn-primary btn-sm" onclick="addGoal()">Add</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom Row: Pending Homework + Pending Assignments -->
-        <div class="grid-2 mb-24">
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">📝 Pending Homework</span>
-              <a href="homework.html" class="btn btn-secondary btn-sm">View All</a>
-            </div>
-            <div id="pending-homework"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">📑 Pending Assignments</span>
-              <a href="assignments.html" class="btn btn-secondary btn-sm">View All</a>
-            </div>
-            <div id="pending-assignments"></div>
-          </div>
-        </div>
-
-        <!-- Quick Navigation -->
-        <div class="grid-4 mb-24">
-          <a href="subjects.html" class="card text-center" style="cursor:pointer;">
-            <div style="font-size:32px;margin-bottom:8px;">📚</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Subjects</div>
-          </a>
-          <a href="homework.html" class="card text-center" style="cursor:pointer;">
-            <div style="font-size:32px;margin-bottom:8px;">📝</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Homework</div>
-          </a>
-          <a href="assignments.html" class="card text-center" style="cursor:pointer;">
-            <div style="font-size:32px;margin-bottom:8px;">📑</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Assignments</div>
-          </a>
-          <a href="tests.html" class="card text-center" style="cursor:pointer;">
-            <div style="font-size:32px;margin-bottom:8px;">📊</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Tests</div>
-          </a>
-        </div>
-
       </div>
-    </main>
+
+      <!-- DAILY PLANNER + PRIORITY QUEUE -->
+      <div class="grid-2 mb-24">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📅 Today's Study Plan</span>
+            <span id="planner-progress" style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);"></span>
+          </div>
+          <div id="daily-planner-list"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <select id="planner-chapter-select" class="form-input" style="flex:1;padding:8px 12px;font-size:13px;"></select>
+            <button class="btn btn-primary btn-sm" onclick="handleAddToPlan()">Add</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🎯 Priority Queue</span>
+            <span style="font-size:11px;color:var(--text-muted);">Auto-generated</span>
+          </div>
+          <div id="priority-queue-list"></div>
+        </div>
+      </div>
+
+      <!-- TODO + GOALS -->
+      <div class="grid-2 mb-24">
+        <div class="card">
+          <div class="card-header"><span class="card-title">✅ To-Do List</span></div>
+          <div id="todo-list"></div>
+          <div class="todo-add">
+            <input type="text" id="todo-input" placeholder="Add a task..." onkeypress="if(event.key==='Enter')addTodo()" />
+            <button class="btn btn-primary btn-sm" onclick="addTodo()">Add</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🎯 Goals</span></div>
+          <div id="goals-list"></div>
+          <div class="todo-add">
+            <input type="text" id="goal-input" placeholder="Set a goal..." onkeypress="if(event.key==='Enter')addGoal()" />
+            <button class="btn btn-primary btn-sm" onclick="addGoal()">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PENDING HW + ASSIGNMENTS -->
+      <div class="grid-2 mb-24">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📝 Pending Homework</span>
+            <a href="homework.html" class="btn btn-secondary btn-sm">View All</a>
+          </div>
+          <div id="pending-homework"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📑 Pending Assignments</span>
+            <a href="assignments.html" class="btn btn-secondary btn-sm">View All</a>
+          </div>
+          <div id="pending-assignments"></div>
+        </div>
+      </div>
+
+      <!-- QUICK NAV -->
+      <div class="grid-4 mb-24">
+        <a href="subjects.html"    class="card text-center" style="cursor:pointer;"><div style="font-size:32px;margin-bottom:8px;">📚</div><div style="font-size:14px;font-weight:600;color:var(--text-primary);">Subjects</div></a>
+        <a href="homework.html"    class="card text-center" style="cursor:pointer;"><div style="font-size:32px;margin-bottom:8px;">📝</div><div style="font-size:14px;font-weight:600;color:var(--text-primary);">Homework</div></a>
+        <a href="assignments.html" class="card text-center" style="cursor:pointer;"><div style="font-size:32px;margin-bottom:8px;">📑</div><div style="font-size:14px;font-weight:600;color:var(--text-primary);">Assignments</div></a>
+        <a href="tests.html"       class="card text-center" style="cursor:pointer;"><div style="font-size:32px;margin-bottom:8px;">📊</div><div style="font-size:14px;font-weight:600;color:var(--text-primary);">Tests</div></a>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- EXAM MANAGE MODAL -->
+<div class="modal-overlay" id="exam-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📅 Manage Exams</h2>
+      <div class="modal-close" onclick="closeExamModal()">✕</div>
+    </div>
+    <div id="exam-modal-list" style="max-height:200px;overflow-y:auto;margin-bottom:20px;"></div>
+    <div style="border-top:1px solid var(--border-color);padding-top:16px;">
+      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:12px;">Add New Exam</div>
+      <div class="form-group">
+        <label>Exam Name *</label>
+        <input type="text" id="exam-name" class="form-input" placeholder="e.g. Board Exam — Physics" />
+      </div>
+      <div class="form-group">
+        <label>Subject *</label>
+        <select id="exam-subject" class="form-input"></select>
+      </div>
+      <div class="form-group">
+        <label>Date *</label>
+        <input type="date" id="exam-date" class="form-input" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeExamModal()">Close</button>
+      <button class="btn btn-primary" onclick="saveExam()">Add Exam</button>
+    </div>
   </div>
+</div>
 
-  <div class="toast-container" id="toast-container"></div>
+<div class="toast-container" id="toast-container"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script>
-    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
-    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
-  </script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+<script>
+  function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
+</script>
 </body>
 </html>
