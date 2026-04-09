@@ -7,109 +7,108 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body data-page="homework">
-  <div class="app-container">
+<div class="app-container">
 
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">🌿</div>
-        <div><h1>StudyTracker</h1><span>Productivity System</span></div>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="index.html"       class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-        <a href="subjects.html"    class="nav-item"><span class="nav-icon">📚</span> Subjects</a>
-        <a href="homework.html"    class="nav-item active"><span class="nav-icon">📝</span> Homework</a>
-        <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
-        <a href="tests.html"       class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
-      </nav>
-    </aside>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🌿</div>
+      <div><h1>StudyTracker</h1><span>Productivity System</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html"       class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="subjects.html"    class="nav-item"><span class="nav-icon">📚</span> Subjects</a>
+      <a href="homework.html"    class="nav-item active"><span class="nav-icon">📝</span> Homework</a>
+      <a href="assignments.html" class="nav-item"><span class="nav-icon">📑</span> Assignments</a>
+      <a href="tests.html"       class="nav-item"><span class="nav-icon">📊</span> Test Analysis</a>
+    </nav>
+  </aside>
 
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-    <main class="main-content">
-      <div class="page-wrapper">
-
-        <div class="page-header">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
-            <h1>📝 Homework Log</h1>
-          </div>
-          <button class="btn btn-primary" onclick="showAddHomeworkModal()">+ Add Homework</button>
+  <main class="main-content">
+    <div class="page-wrapper">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+          <h1>📝 Homework Log</h1>
         </div>
-
-        <div class="filter-bar">
-          <select id="filter-hw-subject" class="subject-select" onchange="filterHomework()">
-            <option value="">All Subjects</option>
-          </select>
-          <select id="filter-hw-status" onchange="filterHomework()">
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Done">Done</option>
-          </select>
-        </div>
-
-        <div class="card">
-          <div style="overflow-x:auto;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Subject</th>
-                  <th>Chapter</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="homework-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-
+        <button class="btn btn-primary" onclick="showAddHomeworkModal()">+ Add Homework</button>
       </div>
-    </main>
-  </div>
 
-  <!-- Add Homework Modal -->
-  <div class="modal-overlay" id="homework-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Add Homework</h2>
-        <div class="modal-close" onclick="closeHomeworkModal()">✕</div>
-      </div>
-      <div class="form-group">
-        <label>Title *</label>
-        <input type="text" id="hw-title" class="form-input" placeholder="e.g. Solve NCERT Q1-10" />
-      </div>
-      <div class="form-group">
-        <label>Subject *</label>
-        <select id="hw-subject" class="form-input subject-select">
-          <option value="">Select Subject</option>
+      <div class="filter-bar">
+        <select id="filter-hw-subject" class="subject-select" onchange="filterHomework()">
+          <option value="">All Subjects</option>
+        </select>
+        <select id="filter-hw-status" onchange="filterHomework()">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Done">Done</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Chapter</label>
-        <input type="text" id="hw-chapter" class="form-input" placeholder="e.g. Current Electricity" />
-      </div>
-      <div class="form-group">
-        <label>Date Assigned</label>
-        <input type="date" id="hw-date" class="form-input" />
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="closeHomeworkModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="saveHomework()">Save</button>
+
+      <div class="card">
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Title</th><th>Subject</th><th>Chapter</th><th>Date</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="homework-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
+  </main>
+</div>
+
+<!-- Add Homework Modal -->
+<div class="modal-overlay" id="homework-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Homework</h2>
+      <div class="modal-close" onclick="closeHomeworkModal()">✕</div>
+    </div>
+    <div class="form-group">
+      <label>Title *</label>
+      <input type="text" id="hw-title" class="form-input" placeholder="e.g. Solve NCERT Q1-10" />
+    </div>
+    <div class="form-group">
+      <label>Subject *</label>
+      <select id="hw-subject" class="form-input subject-select">
+        <option value="">Select Subject</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Chapter</label>
+      <input type="text" id="hw-chapter" class="form-input" placeholder="e.g. Current Electricity" />
+    </div>
+    <div class="form-group">
+      <label>Date Assigned</label>
+      <input type="date" id="hw-date" class="form-input" />
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="hw-recurring" style="width:18px;height:18px;accent-color:#3D7A55;cursor:pointer;" />
+      <label for="hw-recurring" style="margin-bottom:0;cursor:pointer;font-size:14px;color:var(--text-primary);">
+        🔁 Repeat weekly <span style="font-size:12px;color:var(--text-muted);">(auto-creates next week's entry when done)</span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeHomeworkModal()">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveHomework()">Save</button>
+    </div>
   </div>
+</div>
 
-  <div class="toast-container" id="toast-container"></div>
+<div class="toast-container" id="toast-container"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/logs.js"></script>
-  <script>
-    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
-    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
-  </script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/api.js"></script>
+<script src="js/logs.js"></script>
+<script>
+  function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); }
+</script>
 </body>
 </html>
