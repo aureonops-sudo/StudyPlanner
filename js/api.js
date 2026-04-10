@@ -124,14 +124,30 @@ document.addEventListener('visibilitychange', () => {
 function getChapterMeta(chapterId) {
   const meta = LocalDB.get('ChapterMeta');
   return meta.find(m => String(m.chapter_id) === String(chapterId))
-    || { chapter_id: chapterId, strength: 'Average', last_revised: null };
+    || {
+        chapter_id:      String(chapterId),
+        strength:        null,          // null = not set by user
+        ncert_revised:   null,          // date string
+        jee_revised:     null,          // date string
+        chapter_end_date: null          // date when chapter was completed/finished
+      };
 }
 
 function updateChapterMeta(chapterId, updates) {
   const meta = LocalDB.get('ChapterMeta');
   const idx  = meta.findIndex(m => String(m.chapter_id) === String(chapterId));
-  if (idx !== -1) { meta[idx] = { ...meta[idx], ...updates }; }
-  else { meta.push({ chapter_id: String(chapterId), strength: 'Average', last_revised: null, ...updates }); }
+  if (idx !== -1) {
+    meta[idx] = { ...meta[idx], ...updates };
+  } else {
+    meta.push({
+      chapter_id:       String(chapterId),
+      strength:         null,
+      ncert_revised:    null,
+      jee_revised:      null,
+      chapter_end_date: null,
+      ...updates
+    });
+  }
   LocalDB.set('ChapterMeta', meta);
 }
 
@@ -212,47 +228,83 @@ function calculateSubjectHealthScore(subjectId) {
 }
 
 /* ============================================
-   PRIORITY QUEUE
+   PRIORITY QUEUE — reworked
+   Factors: exam proximity, incomplete HW/asgn,
+   chapter completion, revision staleness, strength
    ============================================ */
 function generatePriorityQueue(limit = 8) {
-  const chapters = LocalDB.get('Chapters');
-  const exams    = LocalDB.get('Exams') || [];
-  const now      = Date.now();
+  const chapters    = LocalDB.get('Chapters');
+  const exams       = LocalDB.get('Exams') || [];
+  const allHW       = LocalDB.get('Homework');
+  const allAsgn     = LocalDB.get('Assignments');
+  const now         = Date.now();
 
-  return chapters.map(ch => {
-    const progress   = calculateChapterProgress(ch.id);
-    const meta       = getChapterMeta(ch.id);
-    const subject    = LocalDB.get('Subjects').find(s => s.id === ch.subject_id);
-    const strengthMul = { Weak: 1.7, Average: 1.0, Strong: 0.3 }[meta.strength] || 1.0;
+  const scored = chapters.map(ch => {
+    const progress = calculateChapterProgress(ch.id);
+    const meta     = getChapterMeta(ch.id);
+    const subject  = LocalDB.get('Subjects').find(s => s.id === ch.subject_id);
 
-    let examMul = 1.0;
-    const nearestExam = exams
+    // ── 1. Exam proximity score (0–40 pts)
+    let examScore = 0;
+    const nearestDays = exams
       .filter(e => Number(e.subject_id) === Number(ch.subject_id))
       .map(e => (new Date(e.date) - now) / 86400000)
-      .filter(d => d > 0)
+      .filter(d => d >= 0)
       .sort((a, b) => a - b)[0];
-    if (nearestExam !== undefined) {
-      if (nearestExam <= 7) examMul = 2.2;
-      else if (nearestExam <= 14) examMul = 1.6;
-      else if (nearestExam <= 30) examMul = 1.2;
+    if (nearestDays !== undefined) {
+      if (nearestDays <= 7)  examScore = 40;
+      else if (nearestDays <= 14) examScore = 28;
+      else if (nearestDays <= 30) examScore = 16;
+      else if (nearestDays <= 60) examScore = 8;
     }
 
-    let staleMul = 1.2;
-    if (meta.last_revised) {
-      const days = (now - new Date(meta.last_revised)) / 86400000;
-      staleMul = days > 14 ? 1.4 : days > 7 ? 1.1 : 0.9;
-    }
+    // ── 2. Pending homework/assignments for this chapter (0–25 pts)
+    const pendingHW   = allHW.filter(h => h.chapter === ch.name && h.status === 'Pending').length;
+    const pendingAsgn = allAsgn.filter(a => a.chapter === ch.name && a.status === 'Pending').length;
+    const pendingScore = Math.min(25, (pendingHW * 8) + (pendingAsgn * 10));
+
+    // ── 3. Completion gap (0–20 pts) — lower completion = higher score
+    const completionScore = Math.round((1 - progress / 100) * 20);
+
+    // ── 4. Revision staleness — NCERT (0–10 pts) + JEE (0–10 pts)
+    const ncertDays = meta.ncert_revised
+      ? (now - new Date(meta.ncert_revised)) / 86400000 : 999;
+    const jeeDays   = meta.jee_revised
+      ? (now - new Date(meta.jee_revised)) / 86400000   : 999;
+
+    // Only penalise staleness if chapter has been started (progress > 0 or end date set)
+    const isStarted = progress > 0 || meta.chapter_end_date;
+    const ncertStaleScore = isStarted ? Math.min(10, Math.round(ncertDays / 7)) : 0;
+    const jeeStaleScore   = isStarted ? Math.min(10, Math.round(jeeDays  / 7)) : 0;
+
+    // ── 5. Strength modifier (+5 if Weak, -5 if Strong, 0 otherwise)
+    const strengthBonus = meta.strength === 'Weak' ? 5 : meta.strength === 'Strong' ? -5 : 0;
+
+    const totalScore = examScore + pendingScore + completionScore + ncertStaleScore + jeeStaleScore + strengthBonus;
+
+    // Reasons for display
+    const reasons = [];
+    if (examScore > 0)    reasons.push(`📅 Exam in ${Math.ceil(nearestDays)}d`);
+    if (pendingHW > 0)    reasons.push(`📝 ${pendingHW} HW pending`);
+    if (pendingAsgn > 0)  reasons.push(`📑 ${pendingAsgn} asgn pending`);
+    if (ncertDays < 999 && ncertDays > 14) reasons.push(`🔵 NCERT stale (${Math.floor(ncertDays)}d)`);
+    if (jeeDays   < 999 && jeeDays   > 14) reasons.push(`🟠 JEE stale (${Math.floor(jeeDays)}d)`);
+    if (meta.strength === 'Weak') reasons.push('⚠ Weak chapter');
 
     return {
-      ...ch, progress, strength: meta.strength, last_revised: meta.last_revised,
-      subjectName: subject ? subject.name : '',
-      subjectColor: subject ? subject.color : '#3D7A55',
-      priority: (1 - progress / 100) * strengthMul * examMul * staleMul
+      ...ch, progress, strength: meta.strength,
+      ncert_revised: meta.ncert_revised,
+      jee_revised:   meta.jee_revised,
+      subjectName:   subject ? subject.name  : '',
+      subjectColor:  subject ? subject.color : '#3D7A55',
+      totalScore, reasons
     };
-  })
-  .filter(ch => ch.priority > 0.05)
-  .sort((a, b) => b.priority - a.priority)
-  .slice(0, limit);
+  });
+
+  return scored
+    .filter(ch => ch.totalScore > 0)
+    .sort((a, b) => b.totalScore - a.totalScore)
+    .slice(0, limit);
 }
 
 /* ============================================
