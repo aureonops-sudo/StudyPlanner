@@ -63,63 +63,71 @@ async function loadStatCards() {
 }
 
 /* ============================================
-   HEATMAP — GitHub style, 16 weeks
+   HEATMAP — Academic Year: Apr 2026 → May 2027
+   Past days show activity; future days are light grey
    ============================================ */
 function loadHeatmap() {
   const container = document.getElementById('heatmap-container');
   if (!container) return;
 
-  const log    = getActivityLog();
-  const today  = new Date();
-  today.setHours(0,0,0,0);
-  const weeks  = 16;
-  const days   = weeks * 7;
+  const log   = getActivityLog();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  // Start from the Sunday before `days` ago
-  const start  = new Date(today);
-  start.setDate(start.getDate() - days + 1);
-  // Align to Sunday
-  start.setDate(start.getDate() - start.getDay());
+  // Academic year bounds
+  const yearStart = new Date('2026-04-01');
+  const yearEnd   = new Date('2027-05-31');
 
-  const cells  = [];
-  const cur    = new Date(start);
-  while (cur <= today) {
+  // Align start to the Sunday of that week
+  const alignedStart = new Date(yearStart);
+  alignedStart.setDate(alignedStart.getDate() - alignedStart.getDay());
+
+  // Build all days
+  const cells = [];
+  const cur   = new Date(alignedStart);
+  while (cur <= yearEnd) {
     cells.push(new Date(cur));
     cur.setDate(cur.getDate() + 1);
   }
 
-  // Build month labels
-  const monthLabels = {};
+  const totalCols = Math.ceil(cells.length / 7);
+
+  // Month labels — track first column of each month
+  const colMonthLabel = {};
+  const seenMonths = {};
   cells.forEach((d, i) => {
-    if (d.getDate() <= 7) {
-      const col = Math.floor(i / 7);
-      if (!monthLabels[col]) monthLabels[col] = d.toLocaleDateString('en-IN',{month:'short'});
+    const col = Math.floor(i / 7);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!seenMonths[key]) {
+      seenMonths[key] = true;
+      colMonthLabel[col] = d.toLocaleDateString('en-IN', { month: 'short' });
     }
   });
 
-  const totalCols = Math.ceil(cells.length / 7);
   let monthRow = '<div class="heatmap-months">';
   for (let c = 0; c < totalCols; c++) {
-    monthRow += `<div class="heatmap-month-label">${monthLabels[c] || ''}</div>`;
+    monthRow += `<div class="heatmap-month-label">${colMonthLabel[c] || ''}</div>`;
   }
   monthRow += '</div>';
 
   let grid = '<div class="heatmap-grid">';
-  // Day labels col
-  grid += '<div class="heatmap-days"><span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span></div>';
+  grid += '<div class="heatmap-days"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>';
 
-  // Week columns
   for (let c = 0; c < totalCols; c++) {
     grid += '<div class="heatmap-col">';
     for (let r = 0; r < 7; r++) {
-      const cellIdx = c * 7 + r;
-      const d       = cells[cellIdx];
-      if (!d || d > today) { grid += '<div class="heatmap-cell empty"></div>'; continue; }
-      const key     = d.toISOString().split('T')[0];
-      const count   = log[key] || 0;
-      const level   = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 9 ? 3 : 4;
-      const title   = `${key}: ${count} action${count !== 1 ? 's' : ''}`;
-      grid += `<div class="heatmap-cell level-${level}" title="${title}"></div>`;
+      const d = cells[c * 7 + r];
+      if (!d || d > yearEnd) { grid += '<div class="heatmap-cell empty"></div>'; continue; }
+
+      if (d > today) {
+        const key = d.toISOString().split('T')[0];
+        grid += `<div class="heatmap-cell level-future" title="${key}: upcoming"></div>`;
+      } else {
+        const key   = d.toISOString().split('T')[0];
+        const count = log[key] || 0;
+        const level = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 9 ? 3 : 4;
+        grid += `<div class="heatmap-cell level-${level}" title="${key}: ${count} action${count!==1?'s':''}"></div>`;
+      }
     }
     grid += '</div>';
   }
@@ -127,6 +135,7 @@ function loadHeatmap() {
 
   container.innerHTML = monthRow + grid;
 }
+
 
 /* ============================================
    EXAM COUNTDOWN
@@ -344,28 +353,24 @@ async function loadPriorityQueue() {
     return;
   }
 
-  const strengthStyles = {
-    Weak:    { bg: 'rgba(184,76,76,0.1)',    color: '#B84C4C', label: '⚠ Weak' },
-    Average: { bg: 'rgba(200,121,65,0.1)',   color: '#C87941', label: '◎ Average' },
-    Strong:  { bg: 'rgba(61,122,85,0.1)',    color: '#3D7A55', label: '✓ Strong' }
-  };
-
   queue.forEach((ch, i) => {
-    const ss  = strengthStyles[ch.strength] || strengthStyles['Average'];
+    const scoreColor = ch.totalScore >= 40 ? '#B84C4C' : ch.totalScore >= 20 ? '#C87941' : '#3D7A55';
+    const reasonsHtml = (ch.reasons || []).slice(0, 3)
+      .map(r => `<span style="font-size:10px;background:rgba(61,122,85,0.08);color:var(--text-secondary);padding:1px 6px;border-radius:8px;">${r}</span>`)
+      .join('');
     const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(61,122,85,0.07);';
+    div.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(61,122,85,0.07);';
     div.innerHTML = `
-      <div style="width:22px;height:22px;border-radius:50%;background:${ch.subjectColor}20;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;font-weight:700;color:${ch.subjectColor};flex-shrink:0;">${i+1}</div>
+      <div style="width:22px;height:22px;border-radius:50%;background:${ch.subjectColor}20;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;font-weight:700;color:${ch.subjectColor};flex-shrink:0;margin-top:2px;">${i+1}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ch.name}</div>
-        <div style="display:flex;gap:6px;align-items:center;margin-top:3px;">
-          <span style="font-size:10px;color:${ch.subjectColor};">${ch.subjectName}</span>
-          <span style="font-size:10px;background:${ss.bg};color:${ss.color};padding:1px 6px;border-radius:10px;">${ss.label}</span>
-        </div>
+        <div style="font-size:10px;color:${ch.subjectColor};margin-top:2px;">${ch.subjectName}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${reasonsHtml}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:${ch.progress > 60 ? '#3D7A55' : ch.progress > 30 ? '#C87941' : '#B84C4C'};">${ch.progress}%</div>
-        <div class="progress-bar-wrapper" style="width:48px;height:3px;margin-top:4px;">
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:${scoreColor};">⚡${ch.totalScore}</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${ch.progress}%</div>
+        <div class="progress-bar-wrapper" style="width:40px;height:3px;margin-top:3px;">
           <div class="progress-bar-fill" style="width:${ch.progress}%;background:${ch.subjectColor};height:3px;"></div>
         </div>
       </div>
